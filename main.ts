@@ -1,38 +1,40 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, SettingTab } from 'obsidian';
 
-interface MyPluginSettings {
+interface UnlinkFinderSettings {
 	mySetting: string;
+	highlightsInEditor: boolean;
+	highlightsInPreview: boolean;
+	minimumMatchCharacters: number;
+	showLegend: boolean;
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: UnlinkFinderSettings = {
+	mySetting: 'default',
+	highlightsInEditor: false,
+	highlightsInPreview: true,
+	minimumMatchCharacters: 5,
+	showLegend: true,
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
-
+export default class UnlinkFinder extends Plugin {
+	settings: UnlinkFinderSettings;
 	async onload() {
-		console.log('loading plugin');
+		console.log("loaded Unlink Finder");
 
 		await this.loadSettings();
 
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
+		this.addRibbonIcon("cross-in-box", "Unlink Finder", () => {
+			new Notice("You've activate Unlink Finder!");
 		});
 
-		this.addStatusBarItem().setText('Status Bar Text');
-
 		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
+			id: "activate-unlink-finder",
+			name: "Activate Unlink Finder",
 			checkCallback: (checking: boolean) => {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new SampleModal(this.app).open();
+						new UnlinkFinderModal(this.app).open();
 					}
 					return true;
 				}
@@ -40,21 +42,21 @@ export default class MyPlugin extends Plugin {
 			}
 		});
 
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new UnlinkFinderSettingsTab(this.app, this));
 
 		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
+			console.log("Unlink Finder CodeMirror", cm);
 		});
 
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
+		this.registerDomEvent(document, "click", (evt: MouseEvent) => {
+			console.log("click", evt);
 		});
 
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		this.registerInterval(window.setInterval(() => console.log("setInterval"), 5 * 60 * 1000));
 	}
 
 	onunload() {
-		console.log('unloading plugin');
+		console.log("Unlink Finder unloading");
 	}
 
 	async loadSettings() {
@@ -66,47 +68,77 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
+class UnlinkFinderModal extends Modal {
 	constructor(app: App) {
 		super(app);
 	}
 
 	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
+		let { contentEl } = this;
+		contentEl.setText('Welcome to Unlink Finder!');
 	}
 
 	onClose() {
-		let {contentEl} = this;
+		let { contentEl } = this;
 		contentEl.empty();
 	}
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+class UnlinkFinderSettingsTab extends PluginSettingTab {
+	plugin: UnlinkFinder;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: UnlinkFinder) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
 
 	display(): void {
-		let {containerEl} = this;
+		let { containerEl } = this;
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
+		containerEl.createEl("h2", { text: "Unlink Finder Settings" });
 
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
-				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
+			.setName("Show in Editor Mode")
+			.setDesc("Highlight page matches in editor mode.")
+			.addToggle(toggle => toggle.setValue(this.plugin.settings.highlightsInEditor)
+				.onChange((value) => {
+					this.plugin.settings.highlightsInEditor = value;
+					this.plugin.saveSettings();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("Show in Preview Mode")
+			.setDesc("Highlight page matches in preview mode.")
+			.addToggle(toggle => toggle.setValue(this.plugin.settings.highlightsInPreview)
+				.onChange((value) => {
+					this.plugin.settings.highlightsInPreview = value;
+					this.plugin.saveSettings();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("Minimum Characters")
+			.setDesc("Minimum page name length to be considered in the matching algorithm.")
+			.addSlider(slider => slider
+				.setLimits(0, 15, 1)
+				.setValue(this.plugin.settings.minimumMatchCharacters)
+				.onChange((value) => {
+					this.plugin.settings.minimumMatchCharacters = value;
+					this.plugin.saveSettings();
 				}));
+
+				new Setting(containerEl)
+				.setName("Show Match Type Legend")
+				.setDesc("Show a legend of the different match types in the status bar.")
+				.addToggle(toggle => toggle.setValue(this.plugin.settings.showLegend)
+					.onChange((value) => {
+						this.plugin.settings.showLegend = value;
+						this.plugin.saveSettings();
+					})
+				);
 	}
+
 }
