@@ -18,14 +18,21 @@ const DEFAULT_SETTINGS: UnlinkFinderSettings = {
 
 export default class UnlinkFinder extends Plugin {
 	settings: UnlinkFinderSettings;
+	public statusBar: HTMLElement;
 	async onload() {
-		console.log("loaded Unlink Finder");
 
 		await this.loadSettings();
 
+		let unlinkFinderActive = false;
+
 		this.addRibbonIcon("cross-in-box", "Unlink Finder", () => {
-			new Notice("You've activate Unlink Finder!");
+			unlinkFinderActive = !unlinkFinderActive;
+			this.statusBar.setText(`Unlink Finder: ${unlinkFinderActive ? 'On' : 'Off'}`);
+			new Notice("You've activated Unlink Finder!");
 		});
+
+		this.statusBar = this.addStatusBarItem();
+		this.statusBar.setText(`Unlink Finder: ${unlinkFinderActive ? 'On' : 'Off'}`);
 
 		this.addCommand({
 			id: "activate-unlink-finder",
@@ -34,7 +41,10 @@ export default class UnlinkFinder extends Plugin {
 				let leaf = this.app.workspace.activeLeaf;
 				if (leaf) {
 					if (!checking) {
-						new UnlinkFinderModal(this.app).open();
+						unlinkFinderActive = !unlinkFinderActive;
+
+						this.statusBar.setText(`Unlink Finder: ${unlinkFinderActive ? 'On' : 'Off'}`);
+						new Notice("You've activated Unlink Finder!");
 					}
 					return true;
 				}
@@ -68,21 +78,6 @@ export default class UnlinkFinder extends Plugin {
 	}
 }
 
-class UnlinkFinderModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		let { contentEl } = this;
-		contentEl.setText('Welcome to Unlink Finder!');
-	}
-
-	onClose() {
-		let { contentEl } = this;
-		contentEl.empty();
-	}
-}
 
 class UnlinkFinderSettingsTab extends PluginSettingTab {
 	plugin: UnlinkFinder;
@@ -130,15 +125,15 @@ class UnlinkFinderSettingsTab extends PluginSettingTab {
 					this.plugin.saveSettings();
 				}));
 
-				new Setting(containerEl)
-				.setName("Show Match Type Legend")
-				.setDesc("Show a legend of the different match types in the status bar.")
-				.addToggle(toggle => toggle.setValue(this.plugin.settings.showLegend)
-					.onChange((value) => {
-						this.plugin.settings.showLegend = value;
-						this.plugin.saveSettings();
-					})
-				);
+		new Setting(containerEl)
+			.setName("Show Match Type Legend")
+			.setDesc("Show a legend of the different match types in the status bar.")
+			.addToggle(toggle => toggle.setValue(this.plugin.settings.showLegend)
+				.onChange((value) => {
+					this.plugin.settings.showLegend = value;
+					this.plugin.saveSettings();
+				})
+			);
 	}
 
 }
